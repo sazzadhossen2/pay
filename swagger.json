@@ -1,0 +1,410 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SSLCommerz Subscription Payment API",
+    "description": "SSLCommerz payment backend — AHTM Property Management.\n\n## Payment Flow (1 API তেই সব হয়ে যাবে)\n1. **POST /api/payment/init** call করো → `gatewayPageURL` পাবে\n2. User কে ওই URL এ redirect করো (WebView / browser)\n3. User bKash/Nagad/Card দিয়ে pay করে\n4. Success হলে **Subscription auto-activate** হয়ে যাবে\n5. User কে Frontend এ redirect করবে: `/payment/success?tran_id=xxx`\n\n## Pricing\n| Plan Type | Price/Unit/Month | 3 Months | 6 Months | Yearly (20% off) |\n|---|---|---|---|---|\n| Self Managed | BDT 200 | BDT 600/unit | BDT 1,200/unit | BDT 1,920/unit |\n| Company Managed | BDT 1,500 | BDT 4,500/unit | BDT 9,000/unit | BDT 14,400/unit |",
+    "version": "2.0.0"
+  },
+  "servers": [
+    { "url": "http://localhost:5000", "description": "Local Development" }
+  ],
+  "tags": [
+    { "name": "Payment", "description": "1 API call = Full Payment + Subscription Activate" },
+    { "name": "Subscription", "description": "Plans, user subscription, validity check" }
+  ],
+  "paths": {
+    "/api/payment/init": {
+      "post": {
+        "tags": ["Payment"],
+        "summary": "Payment + Subscription Activate (ONLY this 1 API needed)",
+        "description": "This 1 API handles full payment + subscription activation.\n\n**Flow:**\n1. Call this API with user info + plan info\n2. Get `gatewayPageURL` in response\n3. Redirect user to that URL\n4. User pays via bKash/Nagad/Card\n5. On success, subscription auto-activates\n6. User redirected to frontend\n\n**Server handles everything else (callbacks, validation, activation) automatically.**",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PaymentInitRequest" },
+              "example": {
+                "userId": "firebase_user_uid_123",
+                "customerName": "Sazzad",
+                "customerEmail": "sazzad@example.com",
+                "customerPhone": "01700000000",
+                "customerAddress": "Dhaka, Bangladesh",
+                "planType": "self_managed",
+                "planKey": "3m",
+                "units": 2
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment session created - redirect user to gatewayPageURL",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Payment session created",
+                  "data": {
+                    "subscriptionId": "65f1a2b3c4d5e6f7a8b9c0d1",
+                    "orderId": "ORD_1740307200000",
+                    "transactionId": "SSL_firebase_user_uid_123_1740307200000",
+                    "gatewayPageURL": "https://sandbox.sslcommerz.com/EasyCheckOut/testcde123",
+                    "sessionKey": "A1B2C3D4E5F6G7H8",
+                    "amount": 1200,
+                    "currency": "BDT",
+                    "planType": "self_managed",
+                    "planLabel": "3 Months",
+                    "planKey": "3m",
+                    "units": 2,
+                    "pricePerUnit": 200,
+                    "startDate": "2026-02-23T00:00:00.000Z",
+                    "endDate": "2026-05-23T00:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "missing_fields": {
+                    "summary": "Required fields missing",
+                    "value": {
+                      "success": false,
+                      "message": "Missing required fields",
+                      "requiredFields": {
+                        "userId": "string (Firebase UID)",
+                        "customerName": "string",
+                        "customerEmail": "string",
+                        "customerPhone": "string",
+                        "planType": "self_managed | company_managed",
+                        "planKey": "3m | 6m | 1y",
+                        "units": "number (min 1)"
+                      }
+                    }
+                  },
+                  "invalid_plan": {
+                    "summary": "Invalid planType or planKey",
+                    "value": {
+                      "success": false,
+                      "message": "Invalid planType. Must be 'self_managed' or 'company_managed'"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "example": { "success": false, "message": "Internal server error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/subscription/plans": {
+      "get": {
+        "tags": ["Subscription"],
+        "summary": "Get Available Plans & Pricing",
+        "description": "Returns all plans with pricing.\n\nSelf Managed: BDT 200/unit/month\nCompany Managed: BDT 1,500/unit/month\nYearly: 20% discount",
+        "responses": {
+          "200": {
+            "description": "Available plans",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "self_managed": {
+                      "name": "Self Managed",
+                      "description": "User manages units & tenants themselves",
+                      "pricePerUnit": 200,
+                      "currency": "BDT",
+                      "durations": {
+                        "3m": { "label": "3 Months", "months": 3, "discount": 0, "totalPerUnit": 600 },
+                        "6m": { "label": "6 Months", "months": 6, "discount": 0, "totalPerUnit": 1200 },
+                        "1y": { "label": "Yearly", "months": 12, "discount": 20, "totalPerUnit": 1920 }
+                      }
+                    },
+                    "company_managed": {
+                      "name": "Company Managed",
+                      "description": "Company handles full management",
+                      "pricePerUnit": 1500,
+                      "currency": "BDT",
+                      "durations": {
+                        "3m": { "label": "3 Months", "months": 3, "discount": 0, "totalPerUnit": 4500 },
+                        "6m": { "label": "6 Months", "months": 6, "discount": 0, "totalPerUnit": 9000 },
+                        "1y": { "label": "Yearly", "months": 12, "discount": 20, "totalPerUnit": 14400 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/subscription/user/{userId}": {
+      "get": {
+        "tags": ["Subscription"],
+        "summary": "Get Active Subscription for User",
+        "description": "Check if user has active subscription and get details.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "Firebase UID",
+            "schema": { "type": "string" },
+            "example": "firebase_user_uid_123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription info",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "active": {
+                    "summary": "Active subscription found",
+                    "value": {
+                      "success": true,
+                      "hasActiveSubscription": true,
+                      "data": {
+                        "subscriptionId": "65f1a2b3c4d5e6f7a8b9c0d1",
+                        "orderId": "ORD_1740307200000",
+                        "transactionId": "SSL_firebase_user_uid_123_1740307200000",
+                        "planType": "self_managed",
+                        "planLabel": "3 Months",
+                        "planKey": "3m",
+                        "units": 2,
+                        "pricePerUnit": 200,
+                        "totalPrice": 1200,
+                        "startDate": "2026-02-23T00:00:00.000Z",
+                        "endDate": "2026-05-23T00:00:00.000Z",
+                        "paymentStatus": "completed",
+                        "paymentMethod": "sslcommerz",
+                        "isActive": true,
+                        "isExpired": false,
+                        "isValid": true,
+                        "daysRemaining": 89,
+                        "createdAt": "2026-02-23T00:00:00.000Z"
+                      }
+                    }
+                  },
+                  "none": {
+                    "summary": "No active subscription",
+                    "value": {
+                      "success": true,
+                      "hasActiveSubscription": false,
+                      "message": "No active subscription found",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/subscription/user/{userId}/history": {
+      "get": {
+        "tags": ["Subscription"],
+        "summary": "Get Subscription History",
+        "description": "Get all subscription history for a user (newest first).",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "Firebase UID",
+            "schema": { "type": "string" },
+            "example": "firebase_user_uid_123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription history list",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "subscriptionId": "65f1a2b3c4d5e6f7a8b9c0d1",
+                      "orderId": "ORD_1740307200000",
+                      "planType": "self_managed",
+                      "planLabel": "3 Months",
+                      "units": 2,
+                      "totalPrice": 1200,
+                      "paymentStatus": "completed",
+                      "isActive": true,
+                      "daysRemaining": 89,
+                      "startDate": "2026-02-23T00:00:00.000Z",
+                      "endDate": "2026-05-23T00:00:00.000Z",
+                      "createdAt": "2026-02-23T00:00:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/subscription/calculate-price": {
+      "post": {
+        "tags": ["Subscription"],
+        "summary": "Calculate Price Preview",
+        "description": "Calculate total price before payment.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CalculatePriceRequest" },
+              "example": {
+                "planType": "self_managed",
+                "planKey": "3m",
+                "units": 2
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Price calculation",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "planType": "self_managed",
+                    "planLabel": "3 Months",
+                    "planKey": "3m",
+                    "units": 2,
+                    "pricePerUnit": 200,
+                    "totalPrice": 1200,
+                    "currency": "BDT",
+                    "breakdown": "2 units x BDT 200 x 3 months = BDT 1,200",
+                    "startDate": "2026-02-23T00:00:00.000Z",
+                    "endDate": "2026-05-23T00:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid fields",
+            "content": {
+              "application/json": {
+                "example": { "success": false, "message": "Missing required fields: planType, planKey, units" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/subscription/check-validity": {
+      "post": {
+        "tags": ["Subscription"],
+        "summary": "Check Subscription Validity",
+        "description": "Check if user has valid subscription.\nLogic: isActive && !isExpired && paymentStatus == completed",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CheckValidityRequest" },
+              "example": { "userId": "firebase_user_uid_123" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validity result",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "valid": {
+                    "summary": "Valid subscription",
+                    "value": {
+                      "success": true,
+                      "isValid": true,
+                      "isActive": true,
+                      "isExpired": false,
+                      "paymentStatus": "completed",
+                      "daysRemaining": 89,
+                      "planType": "self_managed",
+                      "planLabel": "3 Months"
+                    }
+                  },
+                  "invalid": {
+                    "summary": "No valid subscription",
+                    "value": {
+                      "success": true,
+                      "isValid": false,
+                      "isActive": false,
+                      "isExpired": true,
+                      "paymentStatus": null,
+                      "daysRemaining": 0,
+                      "planType": null,
+                      "planLabel": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "userId missing",
+            "content": {
+              "application/json": {
+                "example": { "success": false, "message": "userId is required" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PaymentInitRequest": {
+        "type": "object",
+        "required": ["userId", "customerName", "customerEmail", "customerPhone", "planType", "planKey", "units"],
+        "properties": {
+          "userId": { "type": "string", "description": "Firebase UID", "example": "firebase_user_uid_123" },
+          "customerName": { "type": "string", "description": "Customer name", "example": "Sazzad" },
+          "customerEmail": { "type": "string", "format": "email", "description": "Email", "example": "sazzad@example.com" },
+          "customerPhone": { "type": "string", "description": "Phone number", "example": "01700000000" },
+          "customerAddress": { "type": "string", "description": "Address (optional, default: Dhaka)", "example": "Dhaka, Bangladesh" },
+          "planType": { "type": "string", "enum": ["self_managed", "company_managed"], "description": "self_managed (BDT 200/unit) or company_managed (BDT 1500/unit)" },
+          "planKey": { "type": "string", "enum": ["3m", "6m", "1y"], "description": "3m = 3 Months, 6m = 6 Months, 1y = Yearly (20% off)" },
+          "units": { "type": "integer", "minimum": 1, "description": "Number of units", "example": 2 }
+        }
+      },
+      "CalculatePriceRequest": {
+        "type": "object",
+        "required": ["planType", "planKey", "units"],
+        "properties": {
+          "planType": { "type": "string", "enum": ["self_managed", "company_managed"] },
+          "planKey": { "type": "string", "enum": ["3m", "6m", "1y"] },
+          "units": { "type": "integer", "minimum": 1, "example": 2 }
+        }
+      },
+      "CheckValidityRequest": {
+        "type": "object",
+        "required": ["userId"],
+        "properties": {
+          "userId": { "type": "string", "example": "firebase_user_uid_123" }
+        }
+      }
+    }
+  }
+}
