@@ -129,10 +129,6 @@ exports.initPayment = async (req, res) => {
       isActive: false,
     });
 
-    // ── Detect actual server URL from request (works on any host) ──
-    const protocol = req.get('x-forwarded-proto') || req.protocol;
-    const serverBaseUrl = `${protocol}://${req.get('host')}`;
-
     // ── Init SSLCommerz session (mirrors Step 5d) ──
     const sslResult = await sslcommerzService.initPayment({
       transactionId,
@@ -144,7 +140,6 @@ exports.initPayment = async (req, res) => {
       customerAddress: customerAddress || "Dhaka",
       productName: `${planType === "company_managed" ? "Company Managed" : "Self Managed"} - ${planLabel}`,
       productCategory: "Subscription",
-      serverBaseUrl,
     });
 
     if (!sslResult.success) {
@@ -216,8 +211,7 @@ exports.paymentSuccess = async (req, res) => {
     const subscription = await Subscription.findOne({ transactionId: tran_id });
     if (!subscription) {
       return res.redirect(
-        303,
-        `${config.frontendUrl}/#/payment/success?status=failed&message=Transaction+not+found`
+        `${config.frontendUrl}/payment/fail?message=Transaction not found`
       );
     }
 
@@ -250,8 +244,7 @@ exports.paymentSuccess = async (req, res) => {
 
       // Return success page — Flutter WebView detects this URL and navigates to home
       return res.redirect(
-        303,
-        `${config.frontendUrl}/#/payment/success?status=success&tran_id=${encodeURIComponent(tran_id)}&subscription_id=${subscription._id}`
+        `${config.baseUrl}/payment-result?status=success&tran_id=${tran_id}&subscription_id=${subscription._id}`
       );
     } else {
       subscription.paymentStatus = "failed";
@@ -259,15 +252,13 @@ exports.paymentSuccess = async (req, res) => {
       await subscription.save();
 
       return res.redirect(
-        303,
-        `${config.frontendUrl}/#/payment/success?status=failed&tran_id=${encodeURIComponent(tran_id)}`
+        `${config.baseUrl}/payment-result?status=failed&tran_id=${tran_id}`
       );
     }
   } catch (error) {
     console.error("Payment Success Error:", error);
     return res.redirect(
-      303,
-      `${config.frontendUrl}/#/payment/success?status=error`
+      `${config.baseUrl}/payment-result?status=error`
     );
   }
 };
@@ -291,14 +282,12 @@ exports.paymentFail = async (req, res) => {
     }
 
     return res.redirect(
-      303,
-      `${config.frontendUrl}/#/payment/success?status=failed&tran_id=${encodeURIComponent(tran_id)}`
+      `${config.baseUrl}/payment-result?status=failed&tran_id=${tran_id}`
     );
   } catch (error) {
     console.error("Payment Fail Error:", error);
     return res.redirect(
-      303,
-      `${config.frontendUrl}/#/payment/success?status=error`
+      `${config.baseUrl}/payment-result?status=error`
     );
   }
 };
@@ -322,14 +311,12 @@ exports.paymentCancel = async (req, res) => {
     }
 
     return res.redirect(
-      303,
-      `${config.frontendUrl}/#/payment/success?status=cancelled&tran_id=${encodeURIComponent(tran_id)}`
+      `${config.baseUrl}/payment-result?status=cancelled&tran_id=${tran_id}`
     );
   } catch (error) {
     console.error("Payment Cancel Error:", error);
     return res.redirect(
-      303,
-      `${config.frontendUrl}/#/payment/success?status=error`
+      `${config.baseUrl}/payment-result?status=error`
     );
   }
 };
