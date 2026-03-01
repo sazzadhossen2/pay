@@ -52,6 +52,7 @@ class SSLCommerzService {
     formData.append("ipn_url", `${this.baseUrl}/api/payment/ipn`);
 
     // Customer info
+      // Customer info
     formData.append("cus_name", customerName);
     formData.append("cus_email", customerEmail);
     formData.append("cus_phone", customerPhone);
