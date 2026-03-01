@@ -5,7 +5,7 @@ module.exports = {
   baseUrl: process.env.BASE_URL || "https://payment-ub97.onrender.com",
   mongodbUri:
     process.env.MONGODB_URI || "mongodb://localhost:27017/subscription_payment",
-  frontendUrl: process.env.FRONTEND_URL || "http://localhost:8080",
+  frontendUrl: process.env.FRONTEND_URL || "https://property1.ahtmhub.com",
 
   // SSLCommerz
   sslcommerz: {
