@@ -150,6 +150,15 @@ app.post("/api/sslcommerz/return/cancel", (req, res) => {
   res.redirect(303, `${config.frontendUrl}/#/payment/success`);
 });
 
+// ── Validate required env vars ───────────────
+const requiredEnv = ["MONGODB_URI", "STORE_ID", "STORE_PASSWORD"];
+const missingEnv = requiredEnv.filter((key) => !process.env[key]);
+if (missingEnv.length > 0) {
+  console.error("❌ Missing required environment variables:", missingEnv.join(", "));
+  console.error("💡 Set them in your hosting dashboard (Render → Environment tab) or in a local .env file.");
+  process.exit(1);
+}
+
 // ── Connect to MongoDB & Start Server ────────
 mongoose
   .connect(config.mongodbUri)
