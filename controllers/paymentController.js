@@ -243,23 +243,17 @@ exports.paymentSuccess = async (req, res) => {
       });
 
       // Return success page — Flutter WebView detects this URL and navigates to home
-      return res.redirect(
-        `${config.baseUrl}/payment-result?status=success&tran_id=${tran_id}&subscription_id=${subscription._id}`
-      );
+      return res.redirect(303, "/payment/success");
     } else {
       subscription.paymentStatus = "failed";
       subscription.ipnResponse = req.body;
       await subscription.save();
 
-      return res.redirect(
-        `${config.baseUrl}/payment-result?status=failed&tran_id=${tran_id}`
-      );
+      return res.redirect(303, "/payment/fail");
     }
   } catch (error) {
     console.error("Payment Success Error:", error);
-    return res.redirect(
-      `${config.baseUrl}/payment-result?status=error`
-    );
+    return res.redirect(303, "/payment/fail");
   }
 };
 
@@ -281,14 +275,10 @@ exports.paymentFail = async (req, res) => {
       await subscription.save();
     }
 
-    return res.redirect(
-      `${config.baseUrl}/payment-result?status=failed&tran_id=${tran_id}`
-    );
+    return res.redirect(303, "/payment/fail");
   } catch (error) {
     console.error("Payment Fail Error:", error);
-    return res.redirect(
-      `${config.baseUrl}/payment-result?status=error`
-    );
+    return res.redirect(303, "/payment/fail");
   }
 };
 
@@ -310,14 +300,10 @@ exports.paymentCancel = async (req, res) => {
       await subscription.save();
     }
 
-    return res.redirect(
-      `${config.baseUrl}/payment-result?status=cancelled&tran_id=${tran_id}`
-    );
+    return res.redirect(303, "/payment/cancel");
   } catch (error) {
     console.error("Payment Cancel Error:", error);
-    return res.redirect(
-      `${config.baseUrl}/payment-result?status=error`
-    );
+    return res.redirect(303, "/payment/cancel");
   }
 };
 
