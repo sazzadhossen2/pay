@@ -13,6 +13,9 @@ const subscriptionRoutes = require("./routes/subscriptionRoutes");
 
 const app = express();
 
+// ── Trust proxy (Render, Railway, etc.) ───────
+app.set("trust proxy", 1);
+
 // ── Middleware ────────────────────────────────
 app.use(
   cors({

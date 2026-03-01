@@ -129,6 +129,10 @@ exports.initPayment = async (req, res) => {
       isActive: false,
     });
 
+    // ── Detect actual server URL from request (works on any host) ──
+    const protocol = req.get('x-forwarded-proto') || req.protocol;
+    const serverBaseUrl = `${protocol}://${req.get('host')}`;
+
     // ── Init SSLCommerz session (mirrors Step 5d) ──
     const sslResult = await sslcommerzService.initPayment({
       transactionId,
@@ -140,6 +144,7 @@ exports.initPayment = async (req, res) => {
       customerAddress: customerAddress || "Dhaka",
       productName: `${planType === "company_managed" ? "Company Managed" : "Self Managed"} - ${planLabel}`,
       productCategory: "Subscription",
+      serverBaseUrl,
     });
 
     if (!sslResult.success) {
