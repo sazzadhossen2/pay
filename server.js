@@ -136,15 +136,15 @@ app.get("/payment-result", async (req, res) => {
 // When Flutter passes its own URLs as success/fail/cancel callbacks,
 // SSLCommerz POSTs back here. We 303-redirect to the Flutter app route.
 app.post("/api/sslcommerz/return/success", (req, res) => {
-  res.redirect(303, "/#/payment/success");
+  res.redirect(303, `${config.frontendUrl}/#/payment/success`);
 });
 
 app.post("/api/sslcommerz/return/fail", (req, res) => {
-  res.redirect(303, "/#/payment/success");
+  res.redirect(303, `${config.frontendUrl}/#/payment/success`);
 });
 
 app.post("/api/sslcommerz/return/cancel", (req, res) => {
-  res.redirect(303, "/#/payment/success");
+  res.redirect(303, `${config.frontendUrl}/#/payment/success`);
 });
 
 // ── Connect to MongoDB & Start Server ────────
