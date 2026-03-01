@@ -60,6 +60,9 @@ exports.initPayment = async (req, res) => {
       planType,
       planKey,
       units,
+      successUrl,
+      failUrl,
+      cancelUrl,
     } = req.body;
 
     // ── Validate required fields ──────────
@@ -140,6 +143,9 @@ exports.initPayment = async (req, res) => {
       customerAddress: customerAddress || "Dhaka",
       productName: `${planType === "company_managed" ? "Company Managed" : "Self Managed"} - ${planLabel}`,
       productCategory: "Subscription",
+      successUrl,
+      failUrl,
+      cancelUrl,
     });
 
     if (!sslResult.success) {
