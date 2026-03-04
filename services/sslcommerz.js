@@ -32,6 +32,7 @@ class SSLCommerzService {
     customerAddress = "Dhaka",
     productName = "Subscription Plan",
     productCategory = "Subscription",
+    baseUrl,
   }) {
     const formData = new FormData();
 
@@ -44,12 +45,13 @@ class SSLCommerzService {
     formData.append("currency", currency);
     formData.append("tran_id", transactionId);
 
-    // Callback URLs — ALWAYS use server baseUrl (never client-sent URLs)
-    // SSLCommerz POSTs to these, server validates & redirects user
-    formData.append("success_url", `${this.baseUrl}/api/payment/success`);
-    formData.append("fail_url", `${this.baseUrl}/api/payment/fail`);
-    formData.append("cancel_url", `${this.baseUrl}/api/payment/cancel`);
-    formData.append("ipn_url", `${this.baseUrl}/api/payment/ipn`);
+    // Callback URLs — use the dynamically detected website URL
+    // so callbacks always point to the correct domain
+    const callbackBase = baseUrl || this.baseUrl;
+    formData.append("success_url", `${callbackBase}/api/payment/success`);
+    formData.append("fail_url", `${callbackBase}/api/payment/fail`);
+    formData.append("cancel_url", `${callbackBase}/api/payment/cancel`);
+    formData.append("ipn_url", `${callbackBase}/api/payment/ipn`);
 
     // Customer info
       // Customer info

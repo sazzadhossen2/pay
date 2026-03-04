@@ -2,7 +2,7 @@ require("dotenv").config();
 
 module.exports = {
   port: process.env.PORT || 5000,
-  baseUrl:  "https://pay-vrom.onrender.com",
+  baseUrl: process.env.BASE_URL || "http://localhost:5000",
   mongodbUri:
     process.env.MONGODB_URI || "mongodb://localhost:27017/subscription_payment",
   frontendUrl: process.env.FRONTEND_URL || "http://localhost:8080",

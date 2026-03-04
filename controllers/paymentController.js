@@ -130,6 +130,10 @@ exports.initPayment = async (req, res) => {
     });
 
     // ── Init SSLCommerz session (mirrors Step 5d) ──
+    // Dynamically detect base URL from the incoming request
+    // so callback URLs always match the website's actual domain
+    const dynamicBaseUrl = `${req.protocol}://${req.get("host")}`;
+
     const sslResult = await sslcommerzService.initPayment({
       transactionId,
       amount: totalPrice,
@@ -140,6 +144,7 @@ exports.initPayment = async (req, res) => {
       customerAddress: customerAddress || "Dhaka",
       productName: `${planType === "company_managed" ? "Company Managed" : "Self Managed"} - ${planLabel}`,
       productCategory: "Subscription",
+      baseUrl: dynamicBaseUrl,
     });
 
     if (!sslResult.success) {
