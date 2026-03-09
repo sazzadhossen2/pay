@@ -6,9 +6,18 @@
   <title>SSLCommerz Payment API Docs</title>
   <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css" />
   <style>
-    body { margin: 0; padding: 0; }
+    body { margin: 0; padding: 0; background: #fafafa; }
     .swagger-ui .topbar { display: none; }
     .swagger-ui .info .title { font-size: 2em; }
+    .swagger-ui .info { margin: 20px 0; }
+    .swagger-ui .scheme-container { background: #f8f8f8; padding: 10px 0; }
+    /* Make tag descriptions more visible */
+    .swagger-ui .opblock-tag { font-size: 1.1em; }
+    .swagger-ui .opblock-tag small { font-size: 0.85em; }
+    /* Better mobile */
+    @media (max-width: 768px) {
+      .swagger-ui .wrapper { padding: 0 10px; }
+    }
   </style>
 </head>
 <body>
@@ -26,6 +35,10 @@
       deepLinking: true,
       defaultModelsExpandDepth: 1,
       defaultModelExpandDepth: 1,
+      docExpansion: "list",
+      filter: true,
+      showExtensions: true,
+      tryItOutEnabled: true,
     });
   </script>
 </body>

@@ -2,46 +2,69 @@
   "openapi": "3.0.3",
   "info": {
     "title": "SSLCommerz Subscription Payment API",
-    "description": "SSLCommerz payment backend — AHTM Property Management.\n\n## Payment Flow (1 API তেই সব হয়ে যাবে)\n1. **POST /api/payment/init** call করো → `gatewayPageURL` পাবে\n2. User কে ওই URL এ redirect করো (WebView / browser)\n3. User bKash/Nagad/Card দিয়ে pay করে\n4. Success হলে **Subscription auto-activate** হয়ে যাবে\n5. User কে Frontend এ redirect করবে: `/payment/success?tran_id=xxx`\n\n## Pricing\n| Plan Type | Price/Unit/Month | 3 Months | 6 Months | Yearly (20% off) |\n|---|---|---|---|---|\n| Self Managed | BDT 200 | BDT 600/unit | BDT 1,200/unit | BDT 1,920/unit |\n| Company Managed | BDT 1,500 | BDT 4,500/unit | BDT 9,000/unit | BDT 14,400/unit |",
-    "version": "2.0.0"
+    "description": "SSLCommerz payment backend — AHTM Property Management.\n\n## 🚀 Payment Flow (Flutter WebView)\n1. **POST /api/payment/init** call করো → `gatewayPageURL` পাবে\n2. User কে ওই URL এ redirect করো (WebView / browser)\n3. User bKash/Nagad/Card দিয়ে pay করে\n4. Success হলে **Subscription auto-activate** হয়ে যাবে\n5. User কে `success_url` এ redirect করবে (dynamic URL support)\n\n## 🔄 Dynamic Redirect URLs (Flutter WebView)\nPayment init করার সময় `success_url`, `fail_url`, `cancel_url` pass করলে payment শেষে সেই URL এ redirect হবে।\nনা দিলে server এর `/payment-result` page এ fallback করবে।\n\n## 💰 Pricing\n| Plan Type | Price/Unit/Month | 3 Months | 6 Months | Yearly (20% off) |\n|---|---|---|---|---|\n| Self Managed | ৳200 | ৳600/unit | ৳1,200/unit | ৳1,920/unit |\n| Company Managed | ৳1,500 | ৳4,500/unit | ৳9,000/unit | ৳14,400/unit |\n\n## 📋 API Overview\n| # | Method | Endpoint | Description |\n|---|---|---|---|\n| 1 | POST | /api/payment/init | ⭐ Payment শুরু করো |\n| 2 | GET | /api/payment/status/{transactionId} | Payment status চেক করো |\n| 3 | GET | /api/subscription/plans | Plans ও Pricing দেখো |\n| 4 | GET | /api/subscription/user/{userId} | Active Subscription দেখো |\n| 5 | GET | /api/subscription/user/{userId}/history | Subscription History |\n| 6 | POST | /api/subscription/calculate-price | Price Preview |\n| 7 | POST | /api/subscription/check-validity | Subscription Valid কিনা চেক করো |\n| 8 | POST | /api/payment/success | 🔒 SSLCommerz callback (auto) |\n| 9 | POST | /api/payment/fail | 🔒 SSLCommerz callback (auto) |\n| 10 | POST | /api/payment/cancel | 🔒 SSLCommerz callback (auto) |\n| 11 | POST | /api/payment/ipn | 🔒 SSLCommerz IPN (auto) |\n| 12 | GET | /payment-result | Payment result HTML page |",
+    "version": "2.1.0",
+    "contact": {
+      "name": "AHTM Support"
+    }
   },
   "servers": [
-    { "url": "http://localhost:5000", "description": "Local Development" }
+    { "url": "http://localhost:5000", "description": "Local Development" },
+    { "url": "https://your-production-url.com", "description": "Production (change this)" }
   ],
   "tags": [
-    { "name": "Payment", "description": "1 API call = Full Payment + Subscription Activate" },
-    { "name": "Subscription", "description": "Plans, user subscription, validity check" }
+    { "name": "⭐ Payment", "description": "Payment init + status check — Flutter থেকে এই APIs call করবে" },
+    { "name": "📋 Subscription", "description": "Plans, user subscription, validity check, price calculator" },
+    { "name": "🔒 SSLCommerz Callbacks", "description": "SSLCommerz internally calls these — Flutter থেকে call করার দরকার নেই" },
+    { "name": "📄 Pages", "description": "Server-rendered HTML pages" }
   ],
   "paths": {
     "/api/payment/init": {
       "post": {
-        "tags": ["Payment"],
-        "summary": "Payment + Subscription Activate (ONLY this 1 API needed)",
-        "description": "This 1 API handles full payment + subscription activation.\n\n**Flow:**\n1. Call this API with user info + plan info\n2. Get `gatewayPageURL` in response\n3. Redirect user to that URL\n4. User pays via bKash/Nagad/Card\n5. On success, subscription auto-activates\n6. User redirected to frontend\n\n**Server handles everything else (callbacks, validation, activation) automatically.**",
+        "tags": ["⭐ Payment"],
+        "summary": "⭐ Payment শুরু করো (ONLY this 1 API needed for payment)",
+        "description": "Full payment + subscription activation এই 1 API তেই হয়ে যাবে।\n\n**Flow:**\n1. এই API call করো user info + plan info দিয়ে\n2. Response এ `gatewayPageURL` পাবে\n3. User কে ওই URL এ redirect করো (Flutter WebView)\n4. User bKash/Nagad/Card দিয়ে pay করে\n5. Success হলে subscription auto-activate হবে\n6. User কে `success_url` এ redirect করবে (query params সহ)\n\n**Dynamic Redirect URLs:**\n- `success_url` দিলে: `success_url?status=success&tran_id=xxx&subscription_id=yyy`\n- `fail_url` দিলে: `fail_url?status=fail&tran_id=xxx`\n- `cancel_url` দিলে: `cancel_url?status=cancelled&tran_id=xxx`\n- কোনো URL না দিলে: `/payment-result?status=...` page এ fallback\n\n**Server বাকি সব automatically handle করে (callbacks, validation, activation).**",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": { "$ref": "#/components/schemas/PaymentInitRequest" },
-              "example": {
-                "userId": "firebase_user_uid_123",
-                "customerName": "Sazzad",
-                "customerEmail": "sazzad@example.com",
-                "customerPhone": "01700000000",
-                "customerAddress": "Dhaka, Bangladesh",
-                "planType": "self_managed",
-                "planKey": "3m",
-                "units": 2,
-                "success_url": "myapp://payment/success",
-                "fail_url": "myapp://payment/fail",
-                "cancel_url": "myapp://payment/cancel"
+              "examples": {
+                "with_redirect_urls": {
+                  "summary": "With dynamic redirect URLs (recommended for Flutter WebView)",
+                  "value": {
+                    "userId": "firebase_user_uid_123",
+                    "customerName": "Sazzad",
+                    "customerEmail": "sazzad@example.com",
+                    "customerPhone": "01700000000",
+                    "customerAddress": "Dhaka, Bangladesh",
+                    "planType": "self_managed",
+                    "planKey": "3m",
+                    "units": 2,
+                    "success_url": "https://yourapp.com/payment/success",
+                    "fail_url": "https://yourapp.com/payment/fail",
+                    "cancel_url": "https://yourapp.com/payment/cancel"
+                  }
+                },
+                "without_redirect_urls": {
+                  "summary": "Without redirect URLs (uses server fallback page)",
+                  "value": {
+                    "userId": "firebase_user_uid_123",
+                    "customerName": "Sazzad",
+                    "customerEmail": "sazzad@example.com",
+                    "customerPhone": "01700000000",
+                    "planType": "company_managed",
+                    "planKey": "1y",
+                    "units": 5
+                  }
+                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Payment session created - redirect user to gatewayPageURL",
+            "description": "✅ Payment session created — redirect user to `gatewayPageURL`",
             "content": {
               "application/json": {
                 "example": {
@@ -60,15 +83,15 @@
                     "planKey": "3m",
                     "units": 2,
                     "pricePerUnit": 200,
-                    "startDate": "2026-02-23T00:00:00.000Z",
-                    "endDate": "2026-05-23T00:00:00.000Z"
+                    "startDate": "2026-03-09T00:00:00.000Z",
+                    "endDate": "2026-06-09T00:00:00.000Z"
                   }
                 }
               }
             }
           },
           "400": {
-            "description": "Validation error",
+            "description": "❌ Validation error",
             "content": {
               "application/json": {
                 "examples": {
@@ -88,14 +111,94 @@
                       }
                     }
                   },
-                  "invalid_plan": {
-                    "summary": "Invalid planType or planKey",
+                  "invalid_planType": {
+                    "summary": "Invalid planType",
                     "value": {
                       "success": false,
                       "message": "Invalid planType. Must be 'self_managed' or 'company_managed'"
                     }
+                  },
+                  "invalid_planKey": {
+                    "summary": "Invalid planKey",
+                    "value": {
+                      "success": false,
+                      "message": "Invalid planKey. Must be '3m', '6m', or '1y'"
+                    }
+                  },
+                  "ssl_session_failed": {
+                    "summary": "SSLCommerz session creation failed",
+                    "value": {
+                      "success": false,
+                      "message": "Failed to create payment session",
+                      "details": null
+                    }
                   }
                 }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "example": { "success": false, "message": "Internal server error", "error": "Error details" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payment/status/{transactionId}": {
+      "get": {
+        "tags": ["⭐ Payment"],
+        "summary": "Payment Status চেক করো",
+        "description": "Transaction ID দিয়ে payment ও subscription status চেক করো।\nPayment complete হয়েছে কিনা, subscription active কিনা — সব দেখতে পাবে।",
+        "parameters": [
+          {
+            "name": "transactionId",
+            "in": "path",
+            "required": true,
+            "description": "Transaction ID (payment init এর response এ পাওয়া যায়)",
+            "schema": { "type": "string" },
+            "example": "SSL_firebase_user_uid_123_1740307200000"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "✅ Payment status found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "subscriptionId": "65f1a2b3c4d5e6f7a8b9c0d1",
+                    "orderId": "ORD_1740307200000",
+                    "transactionId": "SSL_firebase_user_uid_123_1740307200000",
+                    "planType": "self_managed",
+                    "planLabel": "3 Months",
+                    "planKey": "3m",
+                    "units": 2,
+                    "pricePerUnit": 200,
+                    "totalPrice": 1200,
+                    "startDate": "2026-03-09T00:00:00.000Z",
+                    "endDate": "2026-06-09T00:00:00.000Z",
+                    "paymentStatus": "completed",
+                    "paymentMethod": "sslcommerz",
+                    "isActive": true,
+                    "isExpired": false,
+                    "isValid": true,
+                    "daysRemaining": 89,
+                    "createdAt": "2026-03-09T00:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "❌ Payment not found",
+            "content": {
+              "application/json": {
+                "example": { "success": false, "message": "Payment not found" }
               }
             }
           },
@@ -112,12 +215,12 @@
     },
     "/api/subscription/plans": {
       "get": {
-        "tags": ["Subscription"],
-        "summary": "Get Available Plans & Pricing",
-        "description": "Returns all plans with pricing.\n\nSelf Managed: BDT 200/unit/month\nCompany Managed: BDT 1,500/unit/month\nYearly: 20% discount",
+        "tags": ["📋 Subscription"],
+        "summary": "Plans ও Pricing দেখো",
+        "description": "Available subscription plans ও pricing return করে।\n\n**Self Managed:** ৳200/unit/month\n**Company Managed:** ৳1,500/unit/month\n**Yearly:** 20% discount",
         "responses": {
           "200": {
-            "description": "Available plans",
+            "description": "✅ Available plans with pricing",
             "content": {
               "application/json": {
                 "example": {
@@ -155,9 +258,9 @@
     },
     "/api/subscription/user/{userId}": {
       "get": {
-        "tags": ["Subscription"],
-        "summary": "Get Active Subscription for User",
-        "description": "Check if user has active subscription and get details.",
+        "tags": ["📋 Subscription"],
+        "summary": "Active Subscription দেখো",
+        "description": "User এর active subscription আছে কিনা চেক করো।\n\n**Logic:**\n1. `isActive == true` query করে\n2. `paymentStatus == 'completed'` && `!isExpired` filter করে\n3. `endDate` দিয়ে sort করে latest টা return করে\n4. Expired subscription থাকলে auto-deactivate করে",
         "parameters": [
           {
             "name": "userId",
@@ -175,7 +278,7 @@
               "application/json": {
                 "examples": {
                   "active": {
-                    "summary": "Active subscription found",
+                    "summary": "✅ Active subscription found",
                     "value": {
                       "success": true,
                       "hasActiveSubscription": true,
@@ -189,20 +292,20 @@
                         "units": 2,
                         "pricePerUnit": 200,
                         "totalPrice": 1200,
-                        "startDate": "2026-02-23T00:00:00.000Z",
-                        "endDate": "2026-05-23T00:00:00.000Z",
+                        "startDate": "2026-03-09T00:00:00.000Z",
+                        "endDate": "2026-06-09T00:00:00.000Z",
                         "paymentStatus": "completed",
                         "paymentMethod": "sslcommerz",
                         "isActive": true,
                         "isExpired": false,
                         "isValid": true,
                         "daysRemaining": 89,
-                        "createdAt": "2026-02-23T00:00:00.000Z"
+                        "createdAt": "2026-03-09T00:00:00.000Z"
                       }
                     }
                   },
                   "none": {
-                    "summary": "No active subscription",
+                    "summary": "❌ No active subscription",
                     "value": {
                       "success": true,
                       "hasActiveSubscription": false,
@@ -213,15 +316,23 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "example": { "success": false, "message": "Internal server error" }
+              }
+            }
           }
         }
       }
     },
     "/api/subscription/user/{userId}/history": {
       "get": {
-        "tags": ["Subscription"],
-        "summary": "Get Subscription History",
-        "description": "Get all subscription history for a user (newest first).",
+        "tags": ["📋 Subscription"],
+        "summary": "Subscription History দেখো",
+        "description": "User এর সব subscription history return করে (newest first)।\nCompleted, failed, cancelled — সব status এর subscription দেখতে পাবে।",
         "parameters": [
           {
             "name": "userId",
@@ -234,7 +345,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Subscription history list",
+            "description": "✅ Subscription history list",
             "content": {
               "application/json": {
                 "example": {
@@ -243,19 +354,53 @@
                     {
                       "subscriptionId": "65f1a2b3c4d5e6f7a8b9c0d1",
                       "orderId": "ORD_1740307200000",
+                      "transactionId": "SSL_firebase_user_uid_123_1740307200000",
                       "planType": "self_managed",
                       "planLabel": "3 Months",
+                      "planKey": "3m",
                       "units": 2,
+                      "pricePerUnit": 200,
                       "totalPrice": 1200,
                       "paymentStatus": "completed",
+                      "paymentMethod": "sslcommerz",
                       "isActive": true,
+                      "isExpired": false,
+                      "isValid": true,
                       "daysRemaining": 89,
-                      "startDate": "2026-02-23T00:00:00.000Z",
-                      "endDate": "2026-05-23T00:00:00.000Z",
-                      "createdAt": "2026-02-23T00:00:00.000Z"
+                      "startDate": "2026-03-09T00:00:00.000Z",
+                      "endDate": "2026-06-09T00:00:00.000Z",
+                      "createdAt": "2026-03-09T00:00:00.000Z"
+                    },
+                    {
+                      "subscriptionId": "65f1a2b3c4d5e6f7a8b9c0d2",
+                      "orderId": "ORD_1735307200000",
+                      "transactionId": "SSL_firebase_user_uid_123_1735307200000",
+                      "planType": "self_managed",
+                      "planLabel": "3 Months",
+                      "planKey": "3m",
+                      "units": 1,
+                      "pricePerUnit": 200,
+                      "totalPrice": 600,
+                      "paymentStatus": "completed",
+                      "paymentMethod": "sslcommerz",
+                      "isActive": false,
+                      "isExpired": true,
+                      "isValid": false,
+                      "daysRemaining": 0,
+                      "startDate": "2025-12-27T00:00:00.000Z",
+                      "endDate": "2026-03-27T00:00:00.000Z",
+                      "createdAt": "2025-12-27T00:00:00.000Z"
                     }
                   ]
                 }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "example": { "success": false, "message": "Internal server error" }
               }
             }
           }
@@ -264,25 +409,30 @@
     },
     "/api/subscription/calculate-price": {
       "post": {
-        "tags": ["Subscription"],
-        "summary": "Calculate Price Preview",
-        "description": "Calculate total price before payment.",
+        "tags": ["📋 Subscription"],
+        "summary": "Price Preview (Calculate before payment)",
+        "description": "Payment করার আগে price calculate করো।\nFormula: `units × pricePerUnit × months`\nYearly plan এ 20% discount আছে।",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": { "$ref": "#/components/schemas/CalculatePriceRequest" },
-              "example": {
-                "planType": "self_managed",
-                "planKey": "3m",
-                "units": 2
+              "examples": {
+                "self_managed_3m": {
+                  "summary": "Self Managed — 3 Months, 2 units",
+                  "value": { "planType": "self_managed", "planKey": "3m", "units": 2 }
+                },
+                "company_managed_1y": {
+                  "summary": "Company Managed — Yearly, 5 units",
+                  "value": { "planType": "company_managed", "planKey": "1y", "units": 5 }
+                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Price calculation",
+            "description": "✅ Price calculation",
             "content": {
               "application/json": {
                 "example": {
@@ -295,19 +445,28 @@
                     "pricePerUnit": 200,
                     "totalPrice": 1200,
                     "currency": "BDT",
-                    "breakdown": "2 units x BDT 200 x 3 months = BDT 1,200",
-                    "startDate": "2026-02-23T00:00:00.000Z",
-                    "endDate": "2026-05-23T00:00:00.000Z"
+                    "breakdown": "2 units × ৳200 × 3 months = ৳1,200",
+                    "startDate": "2026-03-09T00:00:00.000Z",
+                    "endDate": "2026-06-09T00:00:00.000Z"
                   }
                 }
               }
             }
           },
           "400": {
-            "description": "Missing or invalid fields",
+            "description": "❌ Missing or invalid fields",
             "content": {
               "application/json": {
-                "example": { "success": false, "message": "Missing required fields: planType, planKey, units" }
+                "examples": {
+                  "missing": {
+                    "summary": "Missing fields",
+                    "value": { "success": false, "message": "Missing required fields: planType, planKey, units" }
+                  },
+                  "invalid_plan": {
+                    "summary": "Invalid planType",
+                    "value": { "success": false, "message": "Invalid planType. Must be 'self_managed' or 'company_managed'" }
+                  }
+                }
               }
             }
           }
@@ -316,9 +475,9 @@
     },
     "/api/subscription/check-validity": {
       "post": {
-        "tags": ["Subscription"],
-        "summary": "Check Subscription Validity",
-        "description": "Check if user has valid subscription.\nLogic: isActive && !isExpired && paymentStatus == completed",
+        "tags": ["📋 Subscription"],
+        "summary": "Subscription Valid কিনা চেক করো",
+        "description": "User এর subscription valid কিনা চেক করো।\n\n**Logic:** `isActive && !isExpired && paymentStatus == 'completed'`\n\nExpired subscription থাকলে auto-deactivate করে।",
         "requestBody": {
           "required": true,
           "content": {
@@ -335,7 +494,7 @@
               "application/json": {
                 "examples": {
                   "valid": {
-                    "summary": "Valid subscription",
+                    "summary": "✅ Valid subscription",
                     "value": {
                       "success": true,
                       "isValid": true,
@@ -347,8 +506,21 @@
                       "planLabel": "3 Months"
                     }
                   },
-                  "invalid": {
-                    "summary": "No valid subscription",
+                  "expired": {
+                    "summary": "⏰ Expired subscription",
+                    "value": {
+                      "success": true,
+                      "isValid": false,
+                      "isActive": false,
+                      "isExpired": true,
+                      "paymentStatus": "completed",
+                      "daysRemaining": 0,
+                      "planType": "self_managed",
+                      "planLabel": "3 Months"
+                    }
+                  },
+                  "none": {
+                    "summary": "❌ No subscription at all",
                     "value": {
                       "success": true,
                       "isValid": false,
@@ -365,10 +537,174 @@
             }
           },
           "400": {
-            "description": "userId missing",
+            "description": "❌ userId missing",
             "content": {
               "application/json": {
                 "example": { "success": false, "message": "userId is required" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payment/success": {
+      "post": {
+        "tags": ["🔒 SSLCommerz Callbacks"],
+        "summary": "🔒 Success Callback (SSLCommerz auto-calls this)",
+        "description": "⚠️ **Flutter থেকে call করার দরকার নেই।**\n\nSSLCommerz payment success হলে এই endpoint এ POST করে।\n\n**Server যা করে:**\n1. Transaction validate করে SSLCommerz API দিয়ে\n2. User এর পুরানো active subscription deactivate করে\n3. নতুন subscription activate করে (`isActive: true`, `paymentStatus: completed`)\n4. `clientSuccessUrl` থাকলে সেখানে redirect করে, না থাকলে `/payment-result` page এ redirect করে\n\n**Redirect URL format:**\n`{success_url}?status=success&tran_id=SSL_xxx&subscription_id=yyy`",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tran_id": { "type": "string", "description": "Transaction ID" },
+                  "val_id": { "type": "string", "description": "Validation ID" },
+                  "amount": { "type": "string", "description": "Paid amount" },
+                  "card_type": { "type": "string", "description": "Payment method (bKash, Nagad, VISA, etc.)" },
+                  "card_issuer": { "type": "string", "description": "Card issuer" },
+                  "bank_tran_id": { "type": "string", "description": "Bank transaction ID" },
+                  "status": { "type": "string", "description": "VALID / VALIDATED" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "303": {
+            "description": "Redirects to `clientSuccessUrl` or `/payment-result?status=success`"
+          }
+        }
+      }
+    },
+    "/api/payment/fail": {
+      "post": {
+        "tags": ["🔒 SSLCommerz Callbacks"],
+        "summary": "🔒 Fail Callback (SSLCommerz auto-calls this)",
+        "description": "⚠️ **Flutter থেকে call করার দরকার নেই।**\n\nSSLCommerz payment fail হলে এই endpoint এ POST করে।\n\n**Server যা করে:**\n1. Subscription `paymentStatus` = `'failed'` করে\n2. `clientFailUrl` থাকলে সেখানে redirect করে\n\n**Redirect URL format:**\n`{fail_url}?status=fail&tran_id=SSL_xxx`",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tran_id": { "type": "string", "description": "Transaction ID" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "303": {
+            "description": "Redirects to `clientFailUrl` or `/payment-result?status=fail`"
+          }
+        }
+      }
+    },
+    "/api/payment/cancel": {
+      "post": {
+        "tags": ["🔒 SSLCommerz Callbacks"],
+        "summary": "🔒 Cancel Callback (SSLCommerz auto-calls this)",
+        "description": "⚠️ **Flutter থেকে call করার দরকার নেই।**\n\nUser payment cancel করলে SSLCommerz এই endpoint এ POST করে।\n\n**Server যা করে:**\n1. Subscription `paymentStatus` = `'cancelled'` করে\n2. `clientCancelUrl` থাকলে সেখানে redirect করে\n\n**Redirect URL format:**\n`{cancel_url}?status=cancelled&tran_id=SSL_xxx`",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tran_id": { "type": "string", "description": "Transaction ID" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "303": {
+            "description": "Redirects to `clientCancelUrl` or `/payment-result?status=cancelled`"
+          }
+        }
+      }
+    },
+    "/api/payment/ipn": {
+      "post": {
+        "tags": ["🔒 SSLCommerz Callbacks"],
+        "summary": "🔒 IPN — Instant Payment Notification (server-to-server)",
+        "description": "⚠️ **Flutter থেকে call করার দরকার নেই।**\n\nSSLCommerz server-to-server notification পাঠায়।\nDual activation path — success callback এর পাশাপাশি IPN ও subscription activate করতে পারে (reliability এর জন্য)।\n\n**Server যা করে:**\n1. Transaction validate করে SSLCommerz API দিয়ে\n2. Valid হলে subscription activate করে\n3. Invalid হলে `paymentStatus = 'failed'` করে",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tran_id": { "type": "string", "description": "Transaction ID" },
+                  "val_id": { "type": "string", "description": "Validation ID" },
+                  "status": { "type": "string", "description": "VALID / VALIDATED / FAILED" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "IPN acknowledged",
+            "content": {
+              "application/json": {
+                "example": { "message": "IPN received" }
+              }
+            }
+          },
+          "404": {
+            "description": "Transaction not found",
+            "content": {
+              "application/json": {
+                "example": { "message": "Transaction not found" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payment-result": {
+      "get": {
+        "tags": ["📄 Pages"],
+        "summary": "Payment Result HTML Page",
+        "description": "Server-rendered HTML page যেটা payment শেষে দেখায়।\nFlutter WebView এই URL detect করে navigate করে।\n\n**Query params:**\n- `status` = `success` | `fail` | `cancelled`\n- `tran_id` = Transaction ID\n- `subscription_id` = MongoDB Subscription ID (only on success)\n\n**Note:** এই page শুধু তখনই দেখায় যখন `success_url`/`fail_url`/`cancel_url` pass করা হয়নি।",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Payment result status",
+            "schema": { "type": "string", "enum": ["success", "fail", "cancelled"] },
+            "example": "success"
+          },
+          {
+            "name": "tran_id",
+            "in": "query",
+            "required": false,
+            "description": "Transaction ID",
+            "schema": { "type": "string" },
+            "example": "SSL_firebase_user_uid_123_1740307200000"
+          },
+          {
+            "name": "subscription_id",
+            "in": "query",
+            "required": false,
+            "description": "MongoDB Subscription ID (only on success)",
+            "schema": { "type": "string" },
+            "example": "65f1a2b3c4d5e6f7a8b9c0d1"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTML page with payment result (success/fail/cancelled)",
+            "content": {
+              "text/html": {
+                "example": "<!DOCTYPE html><html>... Payment Result Page ...</html>"
               }
             }
           }
@@ -387,28 +723,28 @@
           "customerEmail": { "type": "string", "format": "email", "description": "Email", "example": "sazzad@example.com" },
           "customerPhone": { "type": "string", "description": "Phone number", "example": "01700000000" },
           "customerAddress": { "type": "string", "description": "Address (optional, default: Dhaka)", "example": "Dhaka, Bangladesh" },
-          "planType": { "type": "string", "enum": ["self_managed", "company_managed"], "description": "self_managed (BDT 200/unit) or company_managed (BDT 1500/unit)" },
+          "planType": { "type": "string", "enum": ["self_managed", "company_managed"], "description": "self_managed (৳200/unit) or company_managed (৳1500/unit)" },
           "planKey": { "type": "string", "enum": ["3m", "6m", "1y"], "description": "3m = 3 Months, 6m = 6 Months, 1y = Yearly (20% off)" },
           "units": { "type": "integer", "minimum": 1, "description": "Number of units", "example": 2 },
-          "success_url": { "type": "string", "description": "Client-side URL to redirect after successful payment (Flutter WebView will detect this URL)", "example": "myapp://payment/success" },
-          "fail_url": { "type": "string", "description": "Client-side URL to redirect after failed payment", "example": "myapp://payment/fail" },
-          "cancel_url": { "type": "string", "description": "Client-side URL to redirect after cancelled payment", "example": "myapp://payment/cancel" }
+          "success_url": { "type": "string", "description": "🔄 Dynamic redirect URL after successful payment (Flutter WebView detect করবে)", "example": "https://yourapp.com/payment/success" },
+          "fail_url": { "type": "string", "description": "🔄 Dynamic redirect URL after failed payment", "example": "https://yourapp.com/payment/fail" },
+          "cancel_url": { "type": "string", "description": "🔄 Dynamic redirect URL after cancelled payment", "example": "https://yourapp.com/payment/cancel" }
         }
       },
       "CalculatePriceRequest": {
         "type": "object",
         "required": ["planType", "planKey", "units"],
         "properties": {
-          "planType": { "type": "string", "enum": ["self_managed", "company_managed"] },
-          "planKey": { "type": "string", "enum": ["3m", "6m", "1y"] },
-          "units": { "type": "integer", "minimum": 1, "example": 2 }
+          "planType": { "type": "string", "enum": ["self_managed", "company_managed"], "description": "Plan type" },
+          "planKey": { "type": "string", "enum": ["3m", "6m", "1y"], "description": "Duration key" },
+          "units": { "type": "integer", "minimum": 1, "description": "Number of units", "example": 2 }
         }
       },
       "CheckValidityRequest": {
         "type": "object",
         "required": ["userId"],
         "properties": {
-          "userId": { "type": "string", "example": "firebase_user_uid_123" }
+          "userId": { "type": "string", "description": "Firebase UID", "example": "firebase_user_uid_123" }
         }
       }
     }
