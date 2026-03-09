@@ -60,6 +60,11 @@ exports.initPayment = async (req, res) => {
       planType,
       planKey,
       units,
+      // ── Dynamic client-side redirect URLs (from Flutter) ──
+      // Flutter WebView থেকে pass করবে, payment শেষে এই URL-এ redirect হবে
+      success_url,  // e.g. "myapp://payment/success"
+      fail_url,     // e.g. "myapp://payment/fail"
+      cancel_url,   // e.g. "myapp://payment/cancel"
     } = req.body;
 
     // ── Validate required fields ──────────
@@ -127,6 +132,10 @@ exports.initPayment = async (req, res) => {
       paymentStatus: "pending",
       paymentMethod: "sslcommerz",
       isActive: false,
+      // ── Store client redirect URLs (Flutter WebView এ dynamic URL) ──
+      clientSuccessUrl: success_url || null,
+      clientFailUrl: fail_url || null,
+      clientCancelUrl: cancel_url || null,
     });
 
     // ── Init SSLCommerz session (mirrors Step 5d) ──
@@ -216,7 +225,7 @@ exports.paymentSuccess = async (req, res) => {
     const subscription = await Subscription.findOne({ transactionId: tran_id });
     if (!subscription) {
       return res.redirect(
-        `${config.frontendUrl}/payment/fail?message=Transaction not found`
+        `/payment-result?status=fail&message=Transaction+not+found`
       );
     }
 
@@ -247,18 +256,32 @@ exports.paymentSuccess = async (req, res) => {
         endDate: subscription.endDate,
       });
 
-      // Return success page — Flutter WebView detects this URL and navigates to home
-      return res.redirect(303, "/payment/success");
+      // ── Redirect to client-provided URL or fallback to payment-result page ──
+      if (subscription.clientSuccessUrl) {
+        const redirectUrl = new URL(subscription.clientSuccessUrl);
+        redirectUrl.searchParams.set('status', 'success');
+        redirectUrl.searchParams.set('tran_id', tran_id);
+        redirectUrl.searchParams.set('subscription_id', subscription._id.toString());
+        return res.redirect(303, redirectUrl.toString());
+      }
+      return res.redirect(303, `/payment-result?status=success&tran_id=${tran_id}&subscription_id=${subscription._id}`);
     } else {
       subscription.paymentStatus = "failed";
       subscription.ipnResponse = req.body;
       await subscription.save();
 
-      return res.redirect(303, "/payment/fail");
+      // ── Redirect to client-provided fail URL or fallback ──
+      if (subscription.clientFailUrl) {
+        const redirectUrl = new URL(subscription.clientFailUrl);
+        redirectUrl.searchParams.set('status', 'fail');
+        redirectUrl.searchParams.set('tran_id', tran_id);
+        return res.redirect(303, redirectUrl.toString());
+      }
+      return res.redirect(303, `/payment-result?status=fail&tran_id=${tran_id}`);
     }
   } catch (error) {
     console.error("Payment Success Error:", error);
-    return res.redirect(303, "/payment/fail");
+    return res.redirect(303, `/payment-result?status=fail&message=Server+error`);
   }
 };
 
@@ -278,12 +301,20 @@ exports.paymentFail = async (req, res) => {
       subscription.paymentStatus = "failed";
       subscription.ipnResponse = req.body;
       await subscription.save();
+
+      // ── Redirect to client-provided fail URL or fallback ──
+      if (subscription.clientFailUrl) {
+        const redirectUrl = new URL(subscription.clientFailUrl);
+        redirectUrl.searchParams.set('status', 'fail');
+        redirectUrl.searchParams.set('tran_id', tran_id);
+        return res.redirect(303, redirectUrl.toString());
+      }
     }
 
-    return res.redirect(303, "/payment/fail");
+    return res.redirect(303, `/payment-result?status=fail&tran_id=${tran_id || ''}`);
   } catch (error) {
     console.error("Payment Fail Error:", error);
-    return res.redirect(303, "/payment/fail");
+    return res.redirect(303, `/payment-result?status=fail`);
   }
 };
 
@@ -303,12 +334,20 @@ exports.paymentCancel = async (req, res) => {
       subscription.paymentStatus = "cancelled";
       subscription.ipnResponse = req.body;
       await subscription.save();
+
+      // ── Redirect to client-provided cancel URL or fallback ──
+      if (subscription.clientCancelUrl) {
+        const redirectUrl = new URL(subscription.clientCancelUrl);
+        redirectUrl.searchParams.set('status', 'cancelled');
+        redirectUrl.searchParams.set('tran_id', tran_id);
+        return res.redirect(303, redirectUrl.toString());
+      }
     }
 
-    return res.redirect(303, "/payment/cancel");
+    return res.redirect(303, `/payment-result?status=cancelled&tran_id=${tran_id || ''}`);
   } catch (error) {
     console.error("Payment Cancel Error:", error);
-    return res.redirect(303, "/payment/cancel");
+    return res.redirect(303, `/payment-result?status=cancelled`);
   }
 };
 

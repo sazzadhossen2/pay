@@ -110,6 +110,20 @@ const subscriptionSchema = new mongoose.Schema(
       type: Object,
       default: null,
     },
+
+    // ── Client-side redirect URLs (dynamic from Flutter) ──
+    clientSuccessUrl: {
+      type: String,
+      default: null,
+    },
+    clientFailUrl: {
+      type: String,
+      default: null,
+    },
+    clientCancelUrl: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true, // createdAt, updatedAt

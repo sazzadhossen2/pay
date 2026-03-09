@@ -31,7 +31,10 @@
                 "customerAddress": "Dhaka, Bangladesh",
                 "planType": "self_managed",
                 "planKey": "3m",
-                "units": 2
+                "units": 2,
+                "success_url": "myapp://payment/success",
+                "fail_url": "myapp://payment/fail",
+                "cancel_url": "myapp://payment/cancel"
               }
             }
           }
@@ -386,7 +389,10 @@
           "customerAddress": { "type": "string", "description": "Address (optional, default: Dhaka)", "example": "Dhaka, Bangladesh" },
           "planType": { "type": "string", "enum": ["self_managed", "company_managed"], "description": "self_managed (BDT 200/unit) or company_managed (BDT 1500/unit)" },
           "planKey": { "type": "string", "enum": ["3m", "6m", "1y"], "description": "3m = 3 Months, 6m = 6 Months, 1y = Yearly (20% off)" },
-          "units": { "type": "integer", "minimum": 1, "description": "Number of units", "example": 2 }
+          "units": { "type": "integer", "minimum": 1, "description": "Number of units", "example": 2 },
+          "success_url": { "type": "string", "description": "Client-side URL to redirect after successful payment (Flutter WebView will detect this URL)", "example": "myapp://payment/success" },
+          "fail_url": { "type": "string", "description": "Client-side URL to redirect after failed payment", "example": "myapp://payment/fail" },
+          "cancel_url": { "type": "string", "description": "Client-side URL to redirect after cancelled payment", "example": "myapp://payment/cancel" }
         }
       },
       "CalculatePriceRequest": {
