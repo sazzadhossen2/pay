@@ -93,10 +93,10 @@ exports.initPayment = async (req, res) => {
     }
 
     // ── Validate planKey ──────────────────
-    if (!["3m", "6m", "1y"].includes(planKey)) {
+    if (!["1m", "3m", "6m", "1y"].includes(planKey)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid planKey. Must be '3m', '6m', or '1y'",
+        message: "Invalid planKey. Must be '1m', '3m', '6m', or '1y'",
       });
     }
 

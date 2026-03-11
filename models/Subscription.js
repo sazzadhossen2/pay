@@ -35,7 +35,7 @@ const subscriptionSchema = new mongoose.Schema(
     },
     planKey: {
       type: String,
-      enum: ["3m", "6m", "1y"],
+      enum: ["1m", "3m", "6m", "1y"],
       required: true,
     },
     units: {
@@ -156,6 +156,9 @@ subscriptionSchema.set("toObject", { virtuals: true });
 subscriptionSchema.statics.calculateEndDate = function (startDate, planKey) {
   const end = new Date(startDate);
   switch (planKey) {
+    case "1m":
+      end.setMonth(end.getMonth() + 1);
+      break;
     case "3m":
       end.setMonth(end.getMonth() + 3);
       break;
@@ -166,20 +169,21 @@ subscriptionSchema.statics.calculateEndDate = function (startDate, planKey) {
       end.setFullYear(end.getFullYear() + 1);
       break;
     default:
-      end.setMonth(end.getMonth() + 3);
+      end.setMonth(end.getMonth() + 1);
   }
   return end;
 };
 
 // ── Static: Get Plan Label ──────────────────
-// '3m' → '3 Months', '6m' → '6 Months', '1y' → 'Yearly'
+// '1m' → '1 Month', '3m' → '3 Months', '6m' → '6 Months', '1y' → 'Yearly'
 subscriptionSchema.statics.getPlanLabel = function (planKey) {
   const labels = {
+    "1m": "1 Month",
     "3m": "3 Months",
     "6m": "6 Months",
     "1y": "Yearly",
   };
-  return labels[planKey] || "3 Months";
+  return labels[planKey] || "1 Month";
 };
 
 // ── Static: Calculate Total Price ───────────
@@ -191,6 +195,9 @@ subscriptionSchema.statics.calculateTotalPrice = function (
 ) {
   let total = units * pricePerUnit;
   switch (planKey) {
+    case "1m":
+      total *= 1;
+      break;
     case "3m":
       total *= 3;
       break;
@@ -201,7 +208,7 @@ subscriptionSchema.statics.calculateTotalPrice = function (
       total *= 12 * 0.8; // 20% yearly discount
       break;
     default:
-      total *= 3;
+      total *= 1;
   }
   return total;
 };

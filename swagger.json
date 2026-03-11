@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "SSLCommerz Subscription Payment API",
-    "description": "SSLCommerz payment backend — AHTM Property Management.\n\n## 🚀 Payment Flow (Flutter WebView)\n1. **POST /api/payment/init** call করো → `gatewayPageURL` পাবে\n2. User কে ওই URL এ redirect করো (WebView / browser)\n3. User bKash/Nagad/Card দিয়ে pay করে\n4. Success হলে **Subscription auto-activate** হয়ে যাবে\n5. User কে `success_url` এ redirect করবে (dynamic URL support)\n\n## 🔄 Dynamic Redirect URLs (Flutter WebView)\nPayment init করার সময় `success_url`, `fail_url`, `cancel_url` pass করলে payment শেষে সেই URL এ redirect হবে।\nনা দিলে server এর `/payment-result` page এ fallback করবে।\n\n## 💰 Pricing\n| Plan Type | Price/Unit/Month | 3 Months | 6 Months | Yearly (20% off) |\n|---|---|---|---|---|\n| Self Managed | ৳200 | ৳600/unit | ৳1,200/unit | ৳1,920/unit |\n| Company Managed | ৳1,500 | ৳4,500/unit | ৳9,000/unit | ৳14,400/unit |\n\n## 📋 API Overview\n| # | Method | Endpoint | Description |\n|---|---|---|---|\n| 1 | POST | /api/payment/init | ⭐ Payment শুরু করো |\n| 2 | GET | /api/payment/status/{transactionId} | Payment status চেক করো |\n| 3 | GET | /api/subscription/plans | Plans ও Pricing দেখো |\n| 4 | GET | /api/subscription/user/{userId} | Active Subscription দেখো |\n| 5 | GET | /api/subscription/user/{userId}/history | Subscription History |\n| 6 | POST | /api/subscription/calculate-price | Price Preview |\n| 7 | POST | /api/subscription/check-validity | Subscription Valid কিনা চেক করো |\n| 8 | POST | /api/payment/success | 🔒 SSLCommerz callback (auto) |\n| 9 | POST | /api/payment/fail | 🔒 SSLCommerz callback (auto) |\n| 10 | POST | /api/payment/cancel | 🔒 SSLCommerz callback (auto) |\n| 11 | POST | /api/payment/ipn | 🔒 SSLCommerz IPN (auto) |\n| 12 | GET | /payment-result | Payment result HTML page |",
+    "description": "SSLCommerz payment backend — AHTM Property Management.\n\n## 🚀 Payment Flow (Flutter WebView)\n1. **POST /api/payment/init** call করো → `gatewayPageURL` পাবে\n2. User কে ওই URL এ redirect করো (WebView / browser)\n3. User bKash/Nagad/Card দিয়ে pay করে\n4. Success হলে **Subscription auto-activate** হয়ে যাবে\n5. User কে `success_url` এ redirect করবে (dynamic URL support)\n\n## 🔄 Dynamic Redirect URLs (Flutter WebView)\nPayment init করার সময় `success_url`, `fail_url`, `cancel_url` pass করলে payment শেষে সেই URL এ redirect হবে।\nনা দিলে server এর `/payment-result` page এ fallback করবে।\n\n## 💰 Pricing\n| Plan Type | Price/Unit/Month | 1 Month | 3 Months | 6 Months | Yearly (20% off) |\n|---|---|---|---|---|---|\n| Self Managed | ৳200 | ৳200/unit | ৳600/unit | ৳1,200/unit | ৳1,920/unit |\n| Company Managed | ৳1,500 | ৳1,500/unit | ৳4,500/unit | ৳9,000/unit | ৳14,400/unit |\n\n## 📋 API Overview\n| # | Method | Endpoint | Description |\n|---|---|---|---|\n| 1 | POST | /api/payment/init | ⭐ Payment শুরু করো |\n| 2 | GET | /api/payment/status/{transactionId} | Payment status চেক করো |\n| 3 | GET | /api/subscription/plans | Plans ও Pricing দেখো |\n| 4 | GET | /api/subscription/user/{userId} | Active Subscription দেখো |\n| 5 | GET | /api/subscription/user/{userId}/history | Subscription History |\n| 6 | POST | /api/subscription/calculate-price | Price Preview |\n| 7 | POST | /api/subscription/check-validity | Subscription Valid কিনা চেক করো |\n| 8 | POST | /api/payment/success | 🔒 SSLCommerz callback (auto) |\n| 9 | POST | /api/payment/fail | 🔒 SSLCommerz callback (auto) |\n| 10 | POST | /api/payment/cancel | 🔒 SSLCommerz callback (auto) |\n| 11 | POST | /api/payment/ipn | 🔒 SSLCommerz IPN (auto) |\n| 12 | GET | /payment-result | Payment result HTML page |",
     "version": "2.1.0",
     "contact": {
       "name": "AHTM Support"
@@ -122,7 +122,7 @@
                     "summary": "Invalid planKey",
                     "value": {
                       "success": false,
-                      "message": "Invalid planKey. Must be '3m', '6m', or '1y'"
+                      "message": "Invalid planKey. Must be '1m', '3m', '6m', or '1y'"
                     }
                   },
                   "ssl_session_failed": {
@@ -724,7 +724,7 @@
           "customerPhone": { "type": "string", "description": "Phone number", "example": "01700000000" },
           "customerAddress": { "type": "string", "description": "Address (optional, default: Dhaka)", "example": "Dhaka, Bangladesh" },
           "planType": { "type": "string", "enum": ["self_managed", "company_managed"], "description": "self_managed (৳200/unit) or company_managed (৳1500/unit)" },
-          "planKey": { "type": "string", "enum": ["3m", "6m", "1y"], "description": "3m = 3 Months, 6m = 6 Months, 1y = Yearly (20% off)" },
+          "planKey": { "type": "string", "enum": ["1m", "3m", "6m", "1y"], "description": "1m = 1 Month, 3m = 3 Months, 6m = 6 Months, 1y = Yearly (20% off)" },
           "units": { "type": "integer", "minimum": 1, "description": "Number of units", "example": 2 },
           "success_url": { "type": "string", "description": "🔄 Dynamic redirect URL after successful payment (Flutter WebView detect করবে)", "example": "https://yourapp.com/payment/success" },
           "fail_url": { "type": "string", "description": "🔄 Dynamic redirect URL after failed payment", "example": "https://yourapp.com/payment/fail" },
@@ -736,7 +736,7 @@
         "required": ["planType", "planKey", "units"],
         "properties": {
           "planType": { "type": "string", "enum": ["self_managed", "company_managed"], "description": "Plan type" },
-          "planKey": { "type": "string", "enum": ["3m", "6m", "1y"], "description": "Duration key" },
+          "planKey": { "type": "string", "enum": ["1m", "3m", "6m", "1y"], "description": "Duration key" },
           "units": { "type": "integer", "minimum": 1, "description": "Number of units", "example": 2 }
         }
       },

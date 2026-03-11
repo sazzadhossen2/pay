@@ -52,6 +52,12 @@ exports.getPlans = async (req, res) => {
         pricePerUnit: 200,
         currency: "BDT",
         durations: {
+          "1m": {
+            label: "1 Month",
+            months: 1,
+            discount: 0,
+            totalPerUnit: 200 * 1,
+          },
           "3m": {
             label: "3 Months",
             months: 3,
@@ -78,6 +84,12 @@ exports.getPlans = async (req, res) => {
         pricePerUnit: 1500,
         currency: "BDT",
         durations: {
+          "1m": {
+            label: "1 Month",
+            months: 1,
+            discount: 0,
+            totalPerUnit: 1500 * 1,
+          },
           "3m": {
             label: "3 Months",
             months: 3,
@@ -161,10 +173,10 @@ exports.calculatePrice = async (req, res) => {
       });
     }
 
-    if (!["3m", "6m", "1y"].includes(planKey)) {
+    if (!["3m", "6m", "1y", "1m"].includes(planKey)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid planKey. Must be '3m', '6m', or '1y'",
+        message: "Invalid planKey. Must be '1m', '3m', '6m', or '1y'",
       });
     }
 
@@ -179,6 +191,9 @@ exports.calculatePrice = async (req, res) => {
     let monthsText;
     let discountText = "";
     switch (planKey) {
+      case "1m":
+        monthsText = "1 month";
+        break;
       case "3m":
         monthsText = "3 months";
         break;
